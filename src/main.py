@@ -9,6 +9,7 @@ import requests
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi_utilities import repeat_every
 from ics import Calendar, Event
 from starlette.responses import FileResponse
 
@@ -39,7 +40,7 @@ HEADERS = {
 # TODO: Make this relative to the project root
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COURTS_DB_PATH = os.path.join(BASE_DIR, '../data/courts.db')
-BADMINTON_COURTS_SCHEDULE = os.path.join(BASE_DIR, '../data/badminton_courts_schedule.ics')
+BADMINTON_COURTS_SCHEDULE = os.path.join(BASE_DIR, '../data/badminton_court_schedule.ics')
 
 # TODO: Move this to a different class
 # TODO: Do some sort of DB normalisation with venue and category slug
@@ -149,7 +150,14 @@ def fetch_courts(venue_slug: str,
 							headers=HEADERS,
 							params={'date': date.isoformat()})
 	response.raise_for_status()
-	return [Court(**court) for court in response.json()['data']]
+	data = response.json()['data']
+
+	# The response can come in two forms - either a dictionary or a list
+	court_list = list(data.values())\
+		if isinstance(data, dict)\
+		else data
+
+	return [Court(**court) for court in court_list]
 
 # TODO: Make more modular for other courts
 def fetch_all_courts() -> list[Court]:
@@ -157,7 +165,7 @@ def fetch_all_courts() -> list[Court]:
 	courts = []
 
 	def fetch_for_date_and_category(date, category_slug):
-		return fetch_courts('ardwick-sports-hall', category_slug, date)
+		return fetch_courts(SUGDEN_SPORTS_CENTRE, category_slug, date)
 
 	with ThreadPoolExecutor(max_workers=6) as executor:
 		tasks = [(date, category) for date in dates for category in [BADMINTON_40MIN, BADMINTON_60MIN]]
@@ -176,7 +184,7 @@ def create_ics_file() -> None:
 
 	for court in courts:
 		event = Event()
-		event.name = f'{court.name} {VENUE_MAP[court.venue_slug]}'
+		event.name = f'{court.name} ({VENUE_MAP[court.venue_slug]})'
 		event.begin = datetime.combine(court.date, court.starts_at)
 		event.end = datetime.combine(court.date, court.ends_at)
 		event.location = VENUE_MAP[court.venue_slug]
@@ -192,13 +200,21 @@ async def download_schedule() -> FileResponse:
 		return FileResponse(ics_file)
 	raise HTTPException(status_code=404, detail='Schedule not found.')
 
-# @app.on_event('startup')
-# async def print_routes():
-# 	for route in app.routes:
-# 		print(route.path)
-
-if __name__ == '__main__':
+@app.on_event('startup')
+def initialise() -> None:
+	print('Initialising...')
 	initialise_database()
 	insert_courts(fetch_all_courts())
 	create_ics_file()
+
+@repeat_every(seconds=600)
+def update_schedule() -> None:
+	print('Updating schedule...')
+	insert_courts(fetch_all_courts())
+	create_ics_file()
+
+if __name__ == '__main__':
+	initialise_database()
+	# insert_courts(fetch_all_courts())
+	# create_ics_file()
 	# print(get_available_courts())
