@@ -1,13 +1,16 @@
 import os
 import sqlite3
-from datetime import datetime
+from concurrent.futures.thread import ThreadPoolExecutor
 
 import requests
+
+from datetime import date, datetime, timedelta
 
 from src.models import Court
 
 API_URL = 'https://better-admin.org.uk/api/activities/venue/{}/activity/{}/times'
-SUGDEN_SLUG = 'sugden-sports-centre'
+SUGDEN_SPORTS_CENTRE = 'sugden-sports-centre'
+ARDWICK_SPORTS_HALL = 'ardwick-sports-hall'
 BADMINTON_40MIN = 'badminton-40min'
 BADMINTON_60MIN = 'badminton-60min'
 
@@ -21,14 +24,6 @@ HEADERS = {
 # TODO: Make this relative to the project root
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COURTS_DB_PATH = os.path.join(BASE_DIR, '../data/courts.db')
-
-# TODO: Add better error handling
-def fetch_courts() -> list[Court]:
-	response = requests.get(API_URL.format(SUGDEN_SLUG, BADMINTON_40MIN),
-							headers=HEADERS,
-							params={'date': '2025-05-11'})
-	response.raise_for_status()
-	return [Court(**court) for court in response.json()['data']]
 
 # TODO: Move this to a different class
 # TODO: Do some sort of DB normalisation with venue and category slug
@@ -51,34 +46,11 @@ def initialise_database() -> None:
 	)
 	''')
 
-	cursor.execute('''
-	INSERT OR IGNORE INTO courts (
-		composite_key,
-		venue_slug,
-		category_slug,
-		name,
-		date,
-		starts_at,
-		ends_at,
-		duration,
-		price,
-		spaces
-	) VALUES (
-	"test23",
-	"sugden",
-	"badminton",
-	"badminton",
-	"2025-05-11",
-	"15:00",
-	"13:00",
-	"60",
-	"£10.00",
-	"5")
-	''')
-
 	conn.commit()
 	conn.close()
 
+# TODO: Add an audit log
+# TODO: Add indexes
 def insert_courts(courts: list[Court]) -> None:
 	conn = sqlite3.connect(COURTS_DB_PATH)
 	cursor = conn.cursor()
@@ -129,7 +101,8 @@ def get_available_courts() -> list[Court]:
 	SELECT * FROM courts
  	WHERE spaces > 0
 		AND date >= date('now')
-		AND starts_at > time('now') 	
+		AND starts_at > time('now')
+	ORDER BY date ASC, starts_at ASC
 	''')
 
 	rows = cursor.fetchall()
@@ -151,7 +124,35 @@ def get_available_courts() -> list[Court]:
 		for row in rows
 	]
 
+# TODO: Add better error handling
+def fetch_courts(venue_slug: str,
+				 category_slug: str,
+				 date: date) -> list[Court]:
+	response = requests.get(API_URL.format(venue_slug, category_slug),
+							headers=HEADERS,
+							params={'date': date.isoformat()})
+	response.raise_for_status()
+	return [Court(**court) for court in response.json()['data']]
+
+# TODO: Make more modular for other courts
+def fetch_all_courts() -> list[Court]:
+	dates = [(datetime.today() + timedelta(days=i)).date() for i in range(6)]
+	courts = []
+
+	def fetch_for_date_and_category(date, category_slug):
+		return fetch_courts('ardwick-sports-hall', category_slug, date)
+
+	with ThreadPoolExecutor(max_workers=6) as executor:
+		tasks = [(date, category) for date in dates for category in [BADMINTON_40MIN, BADMINTON_60MIN]]
+		results = executor.map(lambda p: fetch_for_date_and_category(*p), tasks)
+
+	for result in results:
+		courts.extend(result)
+
+	return courts
+
 if __name__ == '__main__':
+	fetch_all_courts()
 	initialise_database()
-	insert_courts(fetch_courts())
+	insert_courts(fetch_all_courts())
 	print(get_available_courts())
