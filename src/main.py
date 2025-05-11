@@ -6,9 +6,16 @@ import requests
 
 from datetime import date, datetime, timedelta
 
+from ics import Calendar, Event
+
 from src.models import Court
 
 API_URL = 'https://better-admin.org.uk/api/activities/venue/{}/activity/{}/times'
+
+VENUE_MAP = {
+	'sugden-sports-centre': 'Sugden Sports Centre',
+	'ardwick-sports-hall': 'Ardwick Sports Hall'
+}
 SUGDEN_SPORTS_CENTRE = 'sugden-sports-centre'
 ARDWICK_SPORTS_HALL = 'ardwick-sports-hall'
 BADMINTON_40MIN = 'badminton-40min'
@@ -24,6 +31,7 @@ HEADERS = {
 # TODO: Make this relative to the project root
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COURTS_DB_PATH = os.path.join(BASE_DIR, '../data/courts.db')
+BADMINTON_SCHEDULE_PATH = os.path.join(BASE_DIR, '../data/badminton_court_schedule.ics')
 
 # TODO: Move this to a different class
 # TODO: Do some sort of DB normalisation with venue and category slug
@@ -151,8 +159,26 @@ def fetch_all_courts() -> list[Court]:
 
 	return courts
 
+# TODO: Make the mapping for venue_slug cleaner
+def create_ics_file() -> None:
+	courts = get_available_courts()
+
+	cal = Calendar()
+
+	for court in courts:
+		event = Event()
+		event.name = f'court.name {VENUE_MAP[court.venue_slug]}'
+		event.begin = datetime.combine(court.date, court.starts_at)
+		event.end = datetime.combine(court.date, court.ends_at)
+		event.location = VENUE_MAP[court.venue_slug]
+		cal.events.add(event)
+
+	with open(BADMINTON_SCHEDULE_PATH, 'w') as f:
+		f.write(cal.serialize())
+
 if __name__ == '__main__':
 	fetch_all_courts()
 	initialise_database()
 	insert_courts(fetch_all_courts())
+	create_ics_file()
 	print(get_available_courts())
