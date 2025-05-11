@@ -1,14 +1,22 @@
 import os
 import sqlite3
 from concurrent.futures.thread import ThreadPoolExecutor
+from http.client import HTTPException
+from pathlib import Path
 
 import requests
 
 from datetime import date, datetime, timedelta
 
+from fastapi import APIRouter, FastAPI, HTTPException
 from ics import Calendar, Event
+from starlette.responses import FileResponse
 
 from src.models import Court
+
+# TODO: Move this stuff out
+app = FastAPI()
+router = APIRouter()
 
 API_URL = 'https://better-admin.org.uk/api/activities/venue/{}/activity/{}/times'
 
@@ -31,7 +39,7 @@ HEADERS = {
 # TODO: Make this relative to the project root
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COURTS_DB_PATH = os.path.join(BASE_DIR, '../data/courts.db')
-BADMINTON_SCHEDULE_PATH = os.path.join(BASE_DIR, '../data/badminton_court_schedule.ics')
+BADMINTON_COURTS_SCHEDULE = os.path.join(BASE_DIR, '../data/badminton_courts_schedule.ics')
 
 # TODO: Move this to a different class
 # TODO: Do some sort of DB normalisation with venue and category slug
@@ -168,14 +176,26 @@ def create_ics_file() -> None:
 
 	for court in courts:
 		event = Event()
-		event.name = f'court.name {VENUE_MAP[court.venue_slug]}'
+		event.name = f'{court.name} {VENUE_MAP[court.venue_slug]}'
 		event.begin = datetime.combine(court.date, court.starts_at)
 		event.end = datetime.combine(court.date, court.ends_at)
 		event.location = VENUE_MAP[court.venue_slug]
 		cal.events.add(event)
 
-	with open(BADMINTON_SCHEDULE_PATH, 'w') as f:
+	with open(BADMINTON_COURTS_SCHEDULE, 'w') as f:
 		f.write(cal.serialize())
+
+@app.get('/badminton-schedule', response_class=FileResponse)
+async def download_schedule() -> FileResponse:
+	ics_file = Path(BADMINTON_COURTS_SCHEDULE)
+	if ics_file.exists():
+		return FileResponse(ics_file)
+	raise HTTPException(status_code=404, detail='Schedule not found.')
+
+# @app.on_event('startup')
+# async def print_routes():
+# 	for route in app.routes:
+# 		print(route.path)
 
 if __name__ == '__main__':
 	initialise_database()
