@@ -136,6 +136,7 @@ def get_available_courts() -> list[Court]:
 def fetch_courts(venue_slug: str,
 				 category_slug: str,
 				 date: date) -> list[Court]:
+	print(f'Getting courts for {category_slug} at {venue_slug} on {date}')
 	response = requests.get(API_URL.format(venue_slug, category_slug),
 							headers=HEADERS,
 							params={'date': date.isoformat()})
@@ -177,8 +178,7 @@ def create_ics_file() -> None:
 		f.write(cal.serialize())
 
 if __name__ == '__main__':
-	fetch_all_courts()
 	initialise_database()
 	insert_courts(fetch_all_courts())
 	create_ics_file()
-	print(get_available_courts())
+	# print(get_available_courts())
