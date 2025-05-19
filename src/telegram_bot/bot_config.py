@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class BotConfig:
 	DEFAULT_CONFIG = {
 		'settings': {
-			'polling_interval': 600,
+			'polling_interval': 300,
 			'notify_list': set()
 		}
 	}
@@ -58,3 +58,7 @@ class BotConfig:
 		notify_list.remove(user_id)
 		self.set('notify_list', list(notify_list))
 		logger.info(f'Removed user {user_id} from notify list')
+
+
+# TODO: Should this be a Singleton?
+bot_config = BotConfig()

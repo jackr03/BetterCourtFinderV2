@@ -8,14 +8,23 @@ class Court(BaseModel):
 	venue_slug: str
 	category_slug: str
 	name: str
-	
+
 	date: date
 	starts_at: time
 	ends_at: time
 	duration: str
-	
+
 	price: str
 	spaces: int
+
+	class Config:
+		frozen = True
+
+	def __eq__(self, other):
+		return isinstance(other, Court) and self.composite_key == other.composite_key
+
+	def __hash__(self):
+		return hash(self.composite_key)
 
 	@field_validator('date', mode='before')
 	@classmethod
@@ -25,13 +34,13 @@ class Court(BaseModel):
 	@field_validator('starts_at', 'ends_at', mode='before')
 	@classmethod
 	def parse_times(cls, v) -> time:
-		return time.fromisoformat(v['format_24_hour'])\
-			if isinstance(v, dict)\
+		return time.fromisoformat(v['format_24_hour']) \
+			if isinstance(v, dict) \
 			else time.fromisoformat(v)
 
 	@field_validator('price', mode='before')
 	@classmethod
 	def parse_price(cls, v) -> str:
-		return v['formatted_amount']\
-			if isinstance(v, dict)\
+		return v['formatted_amount'] \
+			if isinstance(v, dict) \
 			else v

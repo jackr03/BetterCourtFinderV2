@@ -7,6 +7,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 
 from src.models import Court
 from src.services.court_database import court_database
+from src.telegram_bot.bot_config import bot_config
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -124,6 +125,29 @@ async def search_by_time_selected_callback(callback_query: CallbackQuery):
 	)
 
 
+@router.message(Command('notify'))
+async def notify_command(message: Message):
+	_log_command(message)
+	user_id = message.from_user.id
+
+	if user_id in bot_config.get_notify_list():
+		bot_config.remove_from_notify_list(user_id)
+		await message.answer(
+			'''
+			🔕 You are no longer on the notification list.
+🏸 You won't receive updates about court availability.
+			'''
+		)
+	else:
+		bot_config.add_to_notify_list(user_id)
+		await message.answer(
+			'''
+			🔔 You are now on the notification list.
+🏸 You will be pinged automatically when courts become available.
+			'''
+		)
+
+
 def _get_search_keyboard() -> InlineKeyboardMarkup:
 	return InlineKeyboardMarkup(inline_keyboard=[
 		[InlineKeyboardButton(
@@ -149,7 +173,7 @@ def _format_availability(date: date, courts: list[Court]) -> str:
 	if not courts:
 		return f'❌ No courts available on {date.strftime("%A (%d/%m)")}.'
 
-	lines = [f'✅ Courts available on {date.strftime("%A (%d/%m)")}:', '']
+	lines = [f'✅ Courts available on {date.strftime("%A (%d/%m)")}:']
 
 	for court in courts:
 		lines.append(
@@ -168,7 +192,7 @@ def _format_multiple_days_availability(time_range: tuple[int, int], courts_by_da
 		if not courts:
 			continue
 
-		lines = [f'✅ Courts available on {day.strftime("%A (%d/%m)")}:', '']
+		lines = [f'✅ Courts available on {day.strftime("%A (%d/%m)")}:']
 		for court in courts:
 			lines.append(
 				f'🏸 {court.starts_at.strftime("%H:%M")} - {court.ends_at.strftime("%H:%M")} ({court.duration}), {court.spaces} space(s) left'
