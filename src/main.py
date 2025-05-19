@@ -1,23 +1,41 @@
-from datetime import datetime
+import asyncio
+import logging
+from contextlib import asynccontextmanager
 
-from ics import Calendar, Event
+import uvicorn
+from fastapi import FastAPI
 
-from src.services.database import get_available_courts
-from src.utils.constants import VENUE_MAP, BADMINTON_COURTS_SCHEDULE
+from src.tasks import telegram_bot_task, court_updater_task
 
-# TODO: Make the mapping for venue_slug cleaner
-def create_ics_file() -> None:
-	courts = get_available_courts()
+logging.basicConfig(
+	level=logging.INFO,
+	format='%(asctime)s [%(levelname)s] %(message)s',
+	datefmt='%Y-%m-%d %H:%M:%S'
+)
 
-	cal = Calendar()
+background_tasks = []
 
-	for court in courts:
-		event = Event()
-		event.name = f'{court.name} ({VENUE_MAP[court.venue_slug]})'
-		event.begin = datetime.combine(court.date, court.starts_at)
-		event.end = datetime.combine(court.date, court.ends_at)
-		event.location = VENUE_MAP[court.venue_slug]
-		cal.events.add(event)
 
-	with open(BADMINTON_COURTS_SCHEDULE, 'w') as f:
-		f.write(cal.serialize())
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+	# Startup code
+	background_tasks.append(asyncio.create_task(court_updater_task()))
+	background_tasks.append(asyncio.create_task(telegram_bot_task()))
+
+	yield
+
+	# Cleanup code
+	for task in background_tasks:
+		task.cancel()
+
+	for task in background_tasks:
+		try:
+			await task
+		except asyncio.CancelledError:
+			pass
+
+
+app = FastAPI(lifespan=lifespan)
+
+if __name__ == '__main__':
+	uvicorn.run('main:app', host='0.0.0.0', port=8000, reload=True)
