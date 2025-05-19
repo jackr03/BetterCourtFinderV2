@@ -20,25 +20,39 @@ class TelegramBot:
 		self.config = bot_config
 
 		logger.info('Building initial court availability cache')
-		self.cache = court_database.get_all_available()
+		self.cache = set(court_database.get_all_available())
 
 	async def run(self):
-		# Ignore outdated messages upon startup
 		await self.bot.delete_webhook(drop_pending_updates=True)
 		logger.info("Bot initialised")
 
-		asyncio.create_task(self._availability_monitor_task())
-		await self.dp.start_polling(self.bot)
+		self._monitor_task = asyncio.create_task(self._availability_monitor_task())
+
+		try:
+			await self.dp.start_polling(self.bot)
+		except asyncio.CancelledError:
+			await self._shutdown()
+			raise
+
+	async def _shutdown(self):
+		if hasattr(self, '_monitor_task'):
+			self._monitor_task.cancel()
+			try:
+				await self._monitor_task
+			except asyncio.CancelledError:
+				pass
 
 	async def _availability_monitor_task(self):
 		while True:
 			await asyncio.sleep(self.config.get('polling_interval'))
 			logger.info('Running check for any changes in court availability')
 
-			new_court_availability = court_database.get_all_available()
+			new_set = set(court_database.get_all_available())
 
-			now_available = set(self.cache) - set(new_court_availability)
-			now_unavailable = set(new_court_availability) - set(self.cache)
+			now_available = new_set - self.cache
+			now_unavailable = self.cache - new_set
+
+			self.cache = new_set
 
 			if not now_available and not now_unavailable:
 				logger.info('No changes in court availability, no notification will be sent')
@@ -48,12 +62,10 @@ class TelegramBot:
 			elif now_unavailable:
 				logger.debug(f'Change in courts now unavailable: {now_unavailable}')
 
-			self.cache = new_court_availability
-
 			logger.info('Notifying users of court availability changes')
 			await self._notify_users(list(now_available), list(now_unavailable))
 
-			logger.info(f'Done, next check for court availability in {self.config.get('polling_interval')} seconds')
+			logger.info(f'Done, next check for court availability in {self.config.get("polling_interval")} seconds')
 
 	async def _notify_users(self, now_available: list[Court], now_unavailable: list[Court]):
 		notify_list = self.config.get_notify_list()
@@ -79,7 +91,7 @@ class TelegramBot:
 		for court in courts:
 			courts_by_date[court.date].append(court)
 
-		sections = [header, '']
+		sections = [header]
 
 		for day, courts in sorted(courts_by_date.items()):
 			if not courts:
