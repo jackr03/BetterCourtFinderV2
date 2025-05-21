@@ -7,6 +7,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 
 from src.models import Court
 from src.services.court_database import court_database
+from src.services.court_updater import CourtUpdater
 from src.telegram_bot.bot_config import bot_config
 
 logger = logging.getLogger(__name__)
@@ -20,13 +21,14 @@ async def start_command(message: Message):
 	await message.answer('Test')
 
 
-# TODO: Get back button working
 @router.message(Command('search'))
 async def search_command(message: Message):
 	_log_command(message)
+	last_updated = CourtUpdater().get_last_updated()
 	await message.answer(
-		'Search by...',
-		reply_markup=_get_search_keyboard()
+		f'Choose your search criteria:\n_Last updated: {last_updated}_',
+		reply_markup=_get_search_keyboard(),
+		parse_mode='Markdown'
 	)
 
 

@@ -62,4 +62,4 @@ class CourtFetcher:
 			return [Court(**court) for court in court_list]
 		except Exception as e:
 			logger.error(f'Error fetching courts for {category_slug} at {self.venue_slug} on {date}: {e}')
-			raise
+			return []
