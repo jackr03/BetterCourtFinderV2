@@ -12,7 +12,7 @@ from src.models import Court
 from src.services.court_database import court_database
 from src.services.court_fetcher import CourtFetcher
 from src.telegram_bot.telegram_bot import TelegramBot
-from src.utils.constants import VENUE_MAP, BADMINTON_COURTS_SCHEDULE_PATH
+from src.utils.constants import VENUE_MAP, COURTS_ICS_PATH
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ async def court_updater_task(interval: float = 300):
 			logger.info('Court database updated successfully')
 
 			available_courts = court_database.get_all_available()
-			create_ics_file(available_courts)
+			_create_ics_file(available_courts)
 
 			logger.info(f'Done, next update for courts in {interval} seconds')
 			await asyncio.sleep(interval)
@@ -56,7 +56,7 @@ async def telegram_bot_task():
 		raise
 
 
-def create_ics_file(courts: list[Court]) -> None:
+def _create_ics_file(courts: list[Court]) -> None:
 	logger.info('Creating ICS file')
 	cal = Calendar()
 	tz = ZoneInfo('Europe/London')
@@ -69,5 +69,5 @@ def create_ics_file(courts: list[Court]) -> None:
 		event.location = VENUE_MAP[court.venue_slug]
 		cal.events.add(event)
 
-	with open(BADMINTON_COURTS_SCHEDULE_PATH, 'w') as f:
+	with open(COURTS_ICS_PATH, 'w') as f:
 		f.write(cal.serialize())

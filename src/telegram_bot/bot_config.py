@@ -60,5 +60,4 @@ class BotConfig:
 		logger.info(f'Removed user {user_id} from notify list')
 
 
-# TODO: Should this be a Singleton?
 bot_config = BotConfig()

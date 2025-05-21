@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from starlette.responses import FileResponse
 
 from src.tasks import telegram_bot_task, court_updater_task
-from src.utils.constants import BADMINTON_COURTS_SCHEDULE_PATH
+from src.utils.constants import COURTS_ICS_PATH
 
 logging.basicConfig(
 	level=logging.INFO,
@@ -42,8 +42,8 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get('/badminton', response_class=FileResponse)
-async def download_schedule() -> FileResponse:
-	ics_file = Path(BADMINTON_COURTS_SCHEDULE_PATH)
+async def get_badminton_courts_ics() -> FileResponse:
+	ics_file = Path(COURTS_ICS_PATH)
 	if ics_file.exists():
 		return FileResponse(ics_file)
 	raise HTTPException(status_code=404, detail='ICS file not found.')
