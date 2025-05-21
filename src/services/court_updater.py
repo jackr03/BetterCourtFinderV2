@@ -39,10 +39,10 @@ class CourtUpdater:
 
 	def get_last_updated(self) -> str:
 		"""
-		Returns the time that courts were last updated as a string in the format HH:MM.
+		Returns the time that courts were last updated as a string in the format HH:MM:SS.
 		"""
 		if self.last_updated:
-			return self.last_updated.strftime('%H:%M')
+			return self.last_updated.strftime('%H:%M:%S')
 		return 'never'
 
 	def _set_last_updated(self) -> None:

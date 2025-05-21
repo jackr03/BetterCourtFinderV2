@@ -24,9 +24,8 @@ async def start_command(message: Message):
 @router.message(Command('search'))
 async def search_command(message: Message):
 	_log_command(message)
-	last_updated = CourtUpdater().get_last_updated()
 	await message.answer(
-		f'Choose your search criteria:\n_Last updated: {last_updated}_',
+		f'🔍 Choose your search criteria:\n{_get_last_updated()}',
 		reply_markup=_get_search_keyboard(),
 		parse_mode='Markdown'
 	)
@@ -36,8 +35,9 @@ async def search_command(message: Message):
 async def search_callback(callback_query: CallbackQuery):
 	_log_callback_query(callback_query)
 	await callback_query.message.edit_text(
-		'Search by...',
-		reply_markup=_get_search_keyboard()
+		f'🔍 Choose your search criteria:\n{_get_last_updated()}',
+		reply_markup=_get_search_keyboard(),
+		parse_mode='Markdown'
 	)
 
 
@@ -57,7 +57,7 @@ async def search_by_date_callback(callback_query: CallbackQuery):
 	keyboard_buttons.append([_get_back_button('search')])
 
 	await callback_query.message.edit_text(
-		'Select a date:',
+		'🔍 Select a date:',
 		reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 	)
 
@@ -100,7 +100,7 @@ async def search_by_time_callback(callback_query: CallbackQuery):
 	]
 
 	await callback_query.message.edit_text(
-		'Select a time:',
+		'🔍 Select a time:',
 		reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 	)
 
@@ -150,6 +150,16 @@ async def notify_command(message: Message):
 		)
 
 
+@router.message(Command('refresh'))
+async def refresh_command(message: Message):
+	_log_command(message)
+	CourtUpdater().update()
+	await message.answer(
+		f'✅ Courts updated successfully!\n{_get_last_updated()}',
+		parse_mode='Markdown'
+	)
+
+
 def _get_search_keyboard() -> InlineKeyboardMarkup:
 	return InlineKeyboardMarkup(inline_keyboard=[
 		[InlineKeyboardButton(
@@ -168,6 +178,12 @@ def _get_back_button(callback_data: str) -> InlineKeyboardButton:
 		text='⬅️ Back',
 		callback_data=callback_data
 	)
+
+
+def _get_last_updated() -> str:
+	"""Return last updated time as a markdown string with italics."""
+	last_updated = CourtUpdater().get_last_updated()
+	return f'_Last updated: {last_updated}_'
 
 
 # TODO: Group by venue

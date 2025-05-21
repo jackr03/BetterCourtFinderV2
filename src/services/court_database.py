@@ -158,4 +158,5 @@ class CourtDatabase:
 			return dict(grouped)
 
 
+# TODO: Singleton pattern
 court_database = CourtDatabase()
