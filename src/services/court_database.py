@@ -14,11 +14,11 @@ class CourtDatabase:
 		self.db_path = db_path
 		self._initialise()
 
-	def _connect(self):
+	def _connect(self) -> sqlite3.Connection:
 		return sqlite3.connect(self.db_path)
 
 	# TODO: DB normalisation with venue and category slug (if needed)
-	def _initialise(self):
+	def _initialise(self) -> None:
 		with self._connect() as conn:
 			conn.execute('''
 				CREATE TABLE IF NOT EXISTS courts (
@@ -38,6 +38,7 @@ class CourtDatabase:
 	# TODO: Add an audit log
 	# TODO: Add indexes
 	def insert(self, courts: list[Court]) -> None:
+		logger.debug(f'Courts with spaces: {[court for court in courts if court.spaces > 0]}')
 		with self._connect() as conn:
 			cursor = conn.executemany('''
 				INSERT INTO courts (
@@ -76,8 +77,7 @@ class CourtDatabase:
 			rows = conn.execute('''
 				SELECT * FROM courts
 				WHERE spaces > 0
-					AND date >= date('now')
-					AND starts_at > time('now')
+					AND (date > date('now') OR (date = date('now') AND starts_at > time('now')))
 				ORDER BY date ASC, starts_at ASC
 			''').fetchall()
 
@@ -104,7 +104,7 @@ class CourtDatabase:
 				SELECT * FROM courts
 				WHERE spaces > 0
 					AND date = ?
-					AND starts_at > time('now')
+					AND (date > date('now') OR (date = date('now') AND starts_at > time('now')))
 				ORDER BY starts_at ASC
 			''', (date.strftime('%Y-%m-%d'),)).fetchall()
 
@@ -134,7 +134,7 @@ class CourtDatabase:
 				WHERE spaces > 0
 					AND date >= date('now')
 					AND starts_at BETWEEN time(? || ':00:00') AND time(? || ':00:00')
-				ORDER BY starts_at ASC
+				ORDER BY date ASC, starts_at ASC
 			''', (start, end)).fetchall()
 
 			logger.info(f'Retrieved {len(rows)} available courts for time range {start}:00 - {end}:00')
