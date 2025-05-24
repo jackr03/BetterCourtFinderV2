@@ -1,6 +1,5 @@
 import logging
 import sqlite3
-from collections import defaultdict
 from datetime import date
 
 from ..models import Court
@@ -82,21 +81,7 @@ class CourtDatabase:
 			''').fetchall()
 
 			logger.info(f'Retrieved {len(rows)} available courts')
-			return [
-				Court(
-					composite_key=row[0],
-					venue_slug=row[1],
-					category_slug=row[2],
-					name=row[3],
-					date=row[4],
-					starts_at=row[5],
-					ends_at=row[6],
-					duration=row[7],
-					price=row[8],
-					spaces=row[9]
-				)
-				for row in rows
-			]
+			return self._rows_to_courts(rows)
 
 	def get_available_by_date(self, date: date) -> list[Court]:
 		with self._connect() as conn:
@@ -109,23 +94,10 @@ class CourtDatabase:
 			''', (date.strftime('%Y-%m-%d'),)).fetchall()
 
 			logger.info(f'Retrieved {len(rows)} available courts for {date}')
-			return [
-				Court(
-					composite_key=row[0],
-					venue_slug=row[1],
-					category_slug=row[2],
-					name=row[3],
-					date=row[4],
-					starts_at=row[5],
-					ends_at=row[6],
-					duration=row[7],
-					price=row[8],
-					spaces=row[9]
-				)
-				for row in rows
-			]
+			return self._rows_to_courts(rows)
 
-	def get_available_by_time_range(self, time_range: tuple[int, int]) -> dict[date, list[Court]]:
+	def get_available_by_time_range(self, time_range: tuple[str, str]) -> list[Court]:
+		logger.info('Retrieving available courts for time range: %s', time_range)
 		start, end = time_range
 
 		with self._connect() as conn:
@@ -133,29 +105,29 @@ class CourtDatabase:
 				SELECT * FROM courts
 				WHERE spaces > 0
 					AND date >= date('now')
-					AND starts_at BETWEEN time(? || ':00:00') AND time(? || ':00:00')
+					AND starts_at BETWEEN time(?) AND time(?)
 				ORDER BY date ASC, starts_at ASC
 			''', (start, end)).fetchall()
 
 			logger.info(f'Retrieved {len(rows)} available courts for time range {start}:00 - {end}:00')
-			grouped = defaultdict(list)
+			return self._rows_to_courts(rows)
 
-			for row in rows:
-				court = Court(
-					composite_key=row[0],
-					venue_slug=row[1],
-					category_slug=row[2],
-					name=row[3],
-					date=row[4],
-					starts_at=row[5],
-					ends_at=row[6],
-					duration=row[7],
-					price=row[8],
-					spaces=row[9]
-				)
-				grouped[date.fromisoformat(row[4])].append(court)
-
-			return dict(grouped)
+	def _rows_to_courts(self, rows: list[sqlite3.Row]) -> list[Court]:
+		return [
+			Court(
+				composite_key=row[0],
+				venue_slug=row[1],
+				category_slug=row[2],
+				name=row[3],
+				date=row[4],
+				starts_at=row[5],
+				ends_at=row[6],
+				duration=row[7],
+				price=row[8],
+				spaces=row[9]
+			)
+			for row in rows
+		]
 
 
 # TODO: Singleton pattern
