@@ -1,7 +1,7 @@
 [project]
 name = "bettercourtfinderv2"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Better way to find courts"
 requires-python = ">=3.13"
 dependencies = [
     "aiogram>=3.20.0.post0",
