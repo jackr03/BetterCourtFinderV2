@@ -64,8 +64,9 @@ async def search_by_date_callback(callback_query: CallbackQuery):
 	keyboard_buttons.append([_create_back_button('search')])
 
 	await callback_query.message.edit_text(
-		'🔍 Select a date:',
-		reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+		f'🔍 Select a date:\n{_get_last_updated()}',
+		reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons),
+		parse_mode='Markdown'
 	)
 
 
@@ -105,8 +106,9 @@ async def search_by_time_callback(callback_query: CallbackQuery):
 	]
 
 	await callback_query.message.edit_text(
-		'🔍 Select a time:',
-		reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+		f'🔍 Select a time:\n{_get_last_updated()}',
+		reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_buttons),
+		parse_mode='Markdown'
 	)
 
 
@@ -154,12 +156,17 @@ async def notify_command(message: Message):
 		)
 
 
-# TODO: Initial message to confirm message was received
 @router.message(Command('refresh'))
 async def refresh_command(message: Message):
 	_log_command(message)
+
+	msg = await message.answer(
+		'🔄 Manually updating courts, please wait...'
+	)
+
 	CourtUpdater().update()
-	await message.answer(
+
+	await msg.edit_text(
 		f'✅ Courts updated successfully!\n{_get_last_updated()}',
 		parse_mode='Markdown'
 	)
