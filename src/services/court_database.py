@@ -9,14 +9,25 @@ logger = logging.getLogger(__name__)
 
 
 class CourtDatabase:
+	_instance = None
+	_initialised = False
+
+	def __new__(cls):
+		if cls._instance is None:
+			logger.debug('Creating a new instance of CourtDatabase')
+			cls._instance = super().__new__(cls)
+		return cls._instance
+
 	def __init__(self, db_path: str = COURTS_DB_PATH):
+		if self._initialised:
+			return
 		self.db_path = db_path
 		self._initialise()
+		self._initialised = True
 
 	def _connect(self) -> sqlite3.Connection:
 		return sqlite3.connect(self.db_path)
 
-	# TODO: DB normalisation with venue and category slug (if needed)
 	def _initialise(self) -> None:
 		with self._connect() as conn:
 			conn.execute('''
@@ -34,7 +45,6 @@ class CourtDatabase:
 				)
 			''')
 
-	# TODO: Add an audit log
 	# TODO: Add indexes
 	def insert(self, courts: list[Court]) -> None:
 		logger.debug(f'Courts with spaces: {[court for court in courts if court.spaces > 0]}')
@@ -128,7 +138,3 @@ class CourtDatabase:
 			)
 			for row in rows
 		]
-
-
-# TODO: Singleton pattern
-court_database = CourtDatabase()

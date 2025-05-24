@@ -13,7 +13,7 @@ ARDWICK_SPORTS_HALL = 'ardwick-sports-hall'
 BADMINTON_40MIN = 'badminton-40min'
 BADMINTON_60MIN = 'badminton-60min'
 
-# TODO: Should these be here?
+# File locations
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COURTS_DB_PATH = os.path.join(BASE_DIR, '../../data/courts.db')
 COURTS_ICS_PATH = os.path.join(BASE_DIR, '../../data/courts.ics')

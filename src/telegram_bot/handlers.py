@@ -5,16 +5,16 @@ from aiogram import Router
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
-from src.services.court_database import court_database
+from src.services.court_database import CourtDatabase
 from src.services.court_updater import CourtUpdater
-from src.telegram_bot.bot_config import bot_config
+from src.telegram_bot.bot_config import BotConfig
 from src.utils.court_formatter import format_court_availability
 
 logger = logging.getLogger(__name__)
 router = Router()
 
 
-# TODO: Add some introduction to /start
+# TODO: Add an introduction message to /start
 @router.message(CommandStart())
 async def start_command(message: Message):
 	_log_command(message)
@@ -38,7 +38,7 @@ async def search_callback(callback_query: CallbackQuery):
 @router.callback_query(lambda c: c.data == 'search_all')
 async def search_all_callback(callback_query: CallbackQuery):
 	_log_callback_query(callback_query)
-	courts = court_database.get_all_available()
+	courts = CourtDatabase().get_all_available()
 
 	await callback_query.message.edit_text(
 		format_court_availability(
@@ -75,7 +75,7 @@ async def search_by_date_selected_callback(callback_query: CallbackQuery):
 	_log_callback_query(callback_query)
 	prefix = 'search_by_date_'
 	date = datetime.fromisoformat(callback_query.data[len(prefix):])
-	courts = court_database.get_available_by_date(date)
+	courts = CourtDatabase().get_available_by_date(date)
 
 	await callback_query.message.edit_text(
 		format_court_availability(
@@ -122,7 +122,7 @@ async def search_by_time_selected_callback(callback_query: CallbackQuery):
 		'evening': ('17:00', '22:00')
 	}[callback_query.data[len(prefix):]]
 
-	courts = court_database.get_available_by_time_range(time_range)
+	courts = CourtDatabase.get_available_by_time_range(time_range)
 
 	await callback_query.message.edit_text(
 		format_court_availability(
@@ -138,8 +138,8 @@ async def notify_command(message: Message):
 	_log_command(message)
 	user_id = message.from_user.id
 
-	if user_id in bot_config.get_notify_list():
-		bot_config.remove_from_notify_list(user_id)
+	if user_id in BotConfig().get_notify_list():
+		BotConfig().remove_from_notify_list(user_id)
 		await message.answer(
 			'''
 			🔕 You are no longer on the notification list.
@@ -147,7 +147,7 @@ async def notify_command(message: Message):
 			'''
 		)
 	else:
-		bot_config.add_to_notify_list(user_id)
+		BotConfig().add_to_notify_list(user_id)
 		await message.answer(
 			'''
 			🔔 You are now on the notification list.

@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from ics import Event, Calendar
 
 from src.models import Court
-from src.services.court_database import court_database
+from src.services.court_database import CourtDatabase
 from src.services.court_fetcher import CourtFetcher
 from src.utils.constants import VENUE_MAP, COURTS_ICS_PATH
 
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class CourtUpdater:
 	_instance = None
+	_initialised = False
 
 	def __new__(cls):
 		if cls._instance is None:
@@ -23,17 +24,20 @@ class CourtUpdater:
 		return cls._instance
 
 	def __init__(self):
-		if not hasattr(self, 'court_fetcher'):
-			self.court_fetcher = CourtFetcher()
-			self.last_updated: Optional[date] = None
+		if self._initialised:
+			return
+		self.court_fetcher = CourtFetcher()
+		self.court_database = CourtDatabase()
+		self.last_updated: Optional[date] = None
+		self._initialised = True
 
 	def update(self) -> None:
 		logger.info('Updating court database')
 		courts = self.court_fetcher.fetch_all()
-		court_database.insert(courts)
+		self.court_database.insert(courts)
 		logger.info('Court database updated successfully')
 
-		available_courts = court_database.get_all_available()
+		available_courts = self.court_database.get_all_available()
 		self._create_ics_file(available_courts)
 		self._set_last_updated()
 

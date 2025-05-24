@@ -4,12 +4,13 @@ import toml
 
 from src.utils.constants import BOT_CONFIG_PATH
 
-# TODO: Use proper logging
-
 logger = logging.getLogger(__name__)
 
 
 class BotConfig:
+	_instance = None
+	_initialised = False
+
 	DEFAULT_CONFIG = {
 		'settings': {
 			'polling_interval': 300,
@@ -17,9 +18,18 @@ class BotConfig:
 		}
 	}
 
+	def __new__(cls):
+		if cls._instance is None:
+			logger.debug('Creating a new instance of BotConfig')
+			cls._instance = super().__new__(cls)
+		return cls._instance
+
 	def __init__(self):
+		if self._initialised:
+			return
 		self.config_path = BOT_CONFIG_PATH
 		self.config = self._load()
+		self._initialised = True
 
 	def _load(self) -> dict:
 		logger.debug(f'Attempting to load config from {self.config_path}')
@@ -58,7 +68,3 @@ class BotConfig:
 		notify_list.remove(user_id)
 		self.set('notify_list', list(notify_list))
 		logger.info(f'Removed user {user_id} from notify list')
-
-
-# TODO: Make a singleton properly
-bot_config = BotConfig()

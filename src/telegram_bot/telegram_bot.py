@@ -5,8 +5,8 @@ from collections import defaultdict
 from aiogram import Bot, Dispatcher
 
 from src.models import Court
-from src.services.court_database import court_database
-from src.telegram_bot.bot_config import bot_config
+from src.services.court_database import CourtDatabase
+from src.telegram_bot.bot_config import BotConfig
 from src.telegram_bot.handlers import router
 
 logger = logging.getLogger(__name__)
@@ -17,10 +17,11 @@ class TelegramBot:
 		self.bot = Bot(bot_token)
 		self.dp = Dispatcher()
 		self.dp.include_router(router)
-		self.config = bot_config
+		self.config = BotConfig()
+		self.court_database = CourtDatabase()
 
 		logger.info('Building initial court availability cache')
-		self.cache = set(court_database.get_all_available())
+		self.cache = set(self.court_database.get_all_available())
 
 	async def run(self):
 		await self.bot.delete_webhook(drop_pending_updates=True)
@@ -47,7 +48,7 @@ class TelegramBot:
 			await asyncio.sleep(self.config.get('polling_interval'))
 			logger.info('Running check for any changes in court availability')
 
-			new_set = set(court_database.get_all_available())
+			new_set = set(self.court_database.get_all_available())
 
 			now_available = new_set - self.cache
 			now_unavailable = self.cache - new_set
