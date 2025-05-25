@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 
 from aiogram import Router
 from aiogram.filters import CommandStart, Command
@@ -74,13 +74,13 @@ async def search_by_date_callback(callback_query: CallbackQuery):
 async def search_by_date_selected_callback(callback_query: CallbackQuery):
 	_log_callback_query(callback_query)
 	prefix = 'search_by_date_'
-	date = datetime.fromisoformat(callback_query.data[len(prefix):])
-	courts = CourtDatabase().get_available_by_date(date)
+	search_date = date.fromisoformat(callback_query.data[len(prefix):])
+	courts = CourtDatabase().get_available_by_date(search_date)
 
 	await callback_query.message.edit_text(
 		format_court_availability(
 			courts,
-			f'❌ No courts available on {date.strftime("%A (%d/%m)")}.'),
+			f'❌ No courts available on {search_date.strftime("%A (%d/%m)")}.'),
 		reply_markup=_create_back_button_keyboard('search_by_date')
 	)
 
@@ -122,7 +122,7 @@ async def search_by_time_selected_callback(callback_query: CallbackQuery):
 		'evening': ('17:00', '22:00')
 	}[callback_query.data[len(prefix):]]
 
-	courts = CourtDatabase.get_available_by_time_range(time_range)
+	courts = CourtDatabase().get_available_by_time_range(time_range)
 
 	await callback_query.message.edit_text(
 		format_court_availability(

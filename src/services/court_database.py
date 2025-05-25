@@ -94,16 +94,16 @@ class CourtDatabase:
 			return self._rows_to_courts(rows)
 
 	def get_available_by_date(self, date: date) -> list[Court]:
-		with self._connect() as conn:
+		with (self._connect() as conn):
 			rows = conn.execute('''
 				SELECT * FROM courts
 				WHERE spaces > 0
 					AND date = ?
 					AND (date > date('now') OR (date = date('now') AND starts_at > time('now')))
 				ORDER BY starts_at ASC
-			''', (date.strftime('%Y-%m-%d'),)).fetchall()
+			''', (date.isoformat(),)).fetchall()
 
-			logger.info(f'Retrieved {len(rows)} available courts for {date}')
+			logger.info(f'Retrieved {len(rows)} available courts for {date.isoformat()}')
 			return self._rows_to_courts(rows)
 
 	def get_available_by_time_range(self, time_range: tuple[str, str]) -> list[Court]:
