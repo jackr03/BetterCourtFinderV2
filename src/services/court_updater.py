@@ -38,8 +38,8 @@ class CourtUpdater:
 		logger.info('Court database updated successfully')
 
 		available_courts = self.court_database.get_all_available()
-		self._create_ics_file(available_courts)
 		self._set_last_updated()
+		self._create_ics_file(available_courts)
 
 	def get_last_updated(self) -> str:
 		"""

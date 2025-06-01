@@ -15,7 +15,7 @@ def format_court_availability(
 	if not any(courts_by_date.values()):
 		return none_available_message
 
-	sections = [header, ''] if header else []
+	sections = [header] if header else []
 
 	for days, courts in sorted(courts_by_date.items()):
 		day = _ordinal(days.day)
