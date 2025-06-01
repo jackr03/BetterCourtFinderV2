@@ -8,6 +8,7 @@ from src.models import Court
 from src.services.court_database import CourtDatabase
 from src.telegram_bot.bot_config import BotConfig
 from src.telegram_bot.handlers import router
+from src.utils.court_formatter import format_court_availability
 
 logger = logging.getLogger(__name__)
 
@@ -75,16 +76,17 @@ class TelegramBot:
 			return
 
 		for user_id in notify_list:
+			logger.debug('Notifying user %s', user_id)
 			if now_available:
 				await self.bot.send_message(
 					user_id,
-					self._format_court_availability(f'✅ Now available:', now_available)
+					format_court_availability(now_available, header=f'✅ Now available:')
 				)
 
 			if now_unavailable:
 				await self.bot.send_message(
 					user_id,
-					self._format_court_availability(f'❌ Now unavailable:', now_unavailable)
+					format_court_availability(now_unavailable, header=f'❌ Now unavailable:')
 				)
 
 	def _format_court_availability(self, header: str, courts: list[Court]) -> str:

@@ -44,3 +44,9 @@ class Court(BaseModel):
 		return v['formatted_amount'] \
 			if isinstance(v, dict) \
 			else v
+
+	def format_with_spaces(self) -> str:
+		return f'🏸 {self.starts_at.strftime("%H:%M")} - {self.ends_at.strftime("%H:%M")} ({self.duration}), {self.spaces} space(s) left'
+
+	def format_without_spaces(self) -> str:
+		return f'🏸 {self.starts_at.strftime("%H:%M")} - {self.ends_at.strftime("%H:%M")} ({self.duration})'

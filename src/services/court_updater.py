@@ -64,6 +64,7 @@ class CourtUpdater:
 			event.begin = datetime.combine(court.date, court.starts_at).replace(tzinfo=tz)
 			event.end = datetime.combine(court.date, court.ends_at).replace(tzinfo=tz)
 			event.location = VENUE_MAP[court.venue_slug]
+			event.description = f'Last updated: {self.get_last_updated()}'
 			cal.events.add(event)
 
 		with open(COURTS_ICS_PATH, 'w') as f:
