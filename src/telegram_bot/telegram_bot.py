@@ -80,13 +80,13 @@ class TelegramBot:
 			if now_available:
 				await self.bot.send_message(
 					user_id,
-					format_court_availability(now_available, header=f'✅ Now available:')
+					format_court_availability(now_available, header=f'✅ Now available:', include_spaces=False)
 				)
 
 			if now_unavailable:
 				await self.bot.send_message(
 					user_id,
-					format_court_availability(now_unavailable, header=f'❌ Now unavailable:')
+					format_court_availability(now_unavailable, header=f'❌ Now unavailable:', include_spaces=False)
 				)
 
 	def _format_court_availability(self, header: str, courts: list[Court]) -> str:

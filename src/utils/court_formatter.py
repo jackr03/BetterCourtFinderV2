@@ -8,7 +8,8 @@ from src.models import Court
 def format_court_availability(
 		courts: list[Court],
 		none_available_message: str = 'None available.',
-		header: str = None
+		header: str = None,
+		include_spaces: bool = True
 ) -> str:
 	courts_by_date = _group_courts_by_date(courts)
 
@@ -21,7 +22,7 @@ def format_court_availability(
 		day = _ordinal(days.day)
 		lines = [f'📅 {days.strftime("%A")} {day} {days.strftime("%B")}:']
 		for court in sorted(courts, key=lambda c: (c.starts_at, c.ends_at)):
-			lines.append(court.format_with_spaces())
+			lines.append(court.format_with_spaces() if include_spaces else court.format_without_spaces())
 		sections.append('\n'.join(lines))
 
 	return '\n\n'.join(sections)
